@@ -25,7 +25,8 @@ public class WarehouseItemService(IDistributedCache cache, ILogger<WarehouseItem
 
         logger.LogInformation("Cache miss for item {Id}, generating...", id);
 
-        var item = await Generate(id);
+        var item = WarehouseItemGenerator.Generate(id);
+        logger.LogInformation("Successfully generated item {Id}", id);
 
         await TrySaveToCache(id, item);
         return item;
@@ -78,23 +79,4 @@ public class WarehouseItemService(IDistributedCache cache, ILogger<WarehouseItem
         }
     }
 
-    /// <summary>
-    /// Генерирует товар с указанным идентификатором
-    /// </summary>
-    /// <param name="id">Идентификатор товара в системе</param>
-    /// <returns>Сгенерированный товар на складе</returns>
-    private async Task<WarehouseItem> Generate(int id)
-    {
-        try
-        {
-            var item = await Task.FromResult(WarehouseItemGenerator.Generate(id));
-            logger.LogInformation("Successfully generated item {Id}", id);
-            return item;
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "Failed to generate item {Id}: {Error}", id, ex.Message);
-            throw;
-        }
-    }
 }

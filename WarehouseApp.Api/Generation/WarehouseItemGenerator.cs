@@ -19,10 +19,9 @@ public static class WarehouseItemGenerator
         .RuleFor(x => x.IsFragile, f => f.Random.Bool())
         .RuleFor(x => x.LastDeliveryDate, f =>
             DateOnly.FromDateTime(f.Date.Past(2, DateTime.Today)))
-        .RuleFor(x => x.NextDeliveryDate, (f, item) => DateOnly.FromDateTime(
-            f.Date.Between(
-                item.LastDeliveryDate.ToDateTime(TimeOnly.MinValue),
-                DateTime.Today.AddYears(1))));
+        .RuleFor(x => x.NextDeliveryDate, (f, item) => 
+            f.Date.BetweenDateOnly(item.LastDeliveryDate, DateOnly.FromDateTime(DateTime.Today.AddYears(1)))
+        );
 
     /// <summary>
     /// Генерирует товар на складе с указанным идентификатором
