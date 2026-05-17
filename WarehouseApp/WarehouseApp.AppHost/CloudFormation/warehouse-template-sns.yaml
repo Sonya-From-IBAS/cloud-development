@@ -1,0 +1,29 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'Cloud formation template for warehouse project (SNS + Minio variant)'
+
+Parameters:
+  TopicName:
+    Type: String
+    Description: Name for the SNS topic
+    Default: 'warehouse-topic'
+
+Resources:
+  WarehouseTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: !Ref TopicName
+      DisplayName: !Ref TopicName
+      Tags:
+        - Key: Name
+          Value: !Ref TopicName
+        - Key: Environment
+          Value: Lab3
+
+Outputs:
+  SNSTopicName:
+    Description: Name of the SNS topic
+    Value: !GetAtt WarehouseTopic.TopicName
+
+  SNSTopicArn:
+    Description: ARN of the SNS topic
+    Value: !Ref WarehouseTopic

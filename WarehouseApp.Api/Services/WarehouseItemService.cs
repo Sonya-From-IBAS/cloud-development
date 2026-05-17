@@ -7,9 +7,14 @@ namespace WarehouseApp.Api.Services;
 
 /// <inheritdoc cref="IWarehouseItemService"/>
 /// <param name="cache">Кэш</param>
+/// <param name="publisher">Служба публикации в SNS</param>
 /// <param name="logger">Логгер</param>
 /// <param name="configuration">Конфигурация приложения</param>
-public class WarehouseItemService(IDistributedCache cache, ILogger<WarehouseItemService> logger, IConfiguration configuration)
+public class WarehouseItemService(
+    IDistributedCache cache,
+    ISnsPublisherService publisher,
+    ILogger<WarehouseItemService> logger,
+    IConfiguration configuration)
     : IWarehouseItemService
 {
     private const string KeyPrefix = "warehouse-item:";
@@ -28,6 +33,7 @@ public class WarehouseItemService(IDistributedCache cache, ILogger<WarehouseItem
         var item = WarehouseItemGenerator.Generate(id);
         logger.LogInformation("Successfully generated item {Id}", id);
 
+        await publisher.PublishAsync(item);
         await TrySaveToCache(id, item);
         return item;
     }
@@ -78,5 +84,4 @@ public class WarehouseItemService(IDistributedCache cache, ILogger<WarehouseItem
             logger.LogError(ex, "Failed to save item {Id} to cache: {Error}", id, ex.Message);
         }
     }
-
 }

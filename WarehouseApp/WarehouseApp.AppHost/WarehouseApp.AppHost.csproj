@@ -12,12 +12,22 @@
 
   <ItemGroup>
     <PackageReference Include="Aspire.Hosting.AppHost" Version="9.5.2" />
-	<PackageReference Include="Aspire.Hosting.Redis" Version="9.5.2" />
+    <PackageReference Include="Aspire.Hosting.Redis" Version="9.5.2" />
+    <PackageReference Include="CommunityToolkit.Aspire.Hosting.Minio" Version="9.9.0" />
+    <PackageReference Include="LocalStack.Aspire.Hosting" Version="9.5.3" />
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\Api.Gateway\Api.Gateway.csproj" />
     <ProjectReference Include="..\..\Client.Wasm\Client.Wasm.csproj" />
     <ProjectReference Include="..\..\WarehouseApp.Api\WarehouseApp.Api.csproj" />
+    <ProjectReference Include="..\..\WarehouseApp.FileService\WarehouseApp.FileService.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="CloudFormation\warehouse-template-sns.yaml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 
 </Project>

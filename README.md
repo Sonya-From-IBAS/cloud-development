@@ -50,3 +50,52 @@
 | 8 | `isFragile` | `bool` | Случайный `bool` |
 | 9 | `lastDeliveryDate` | `DateOnly` | Прошедшая дата ≤ сегодня |
 | 10 | `nextDeliveryDate` | `DateOnly` | Дата ≥ `lastDeliveryDate` |
+
+---
+
+# Лабораторная работа №2 — «Балансировка нагрузки»
+
+Реализация API-шлюза на основе Ocelot с кастомным алгоритмом балансировки нагрузки **Weighted Random** (взвешенный случайный выбор).
+
+## Что было сделано
+
+1. **Оркестрация реплик** — в `AppHost.cs` настроен запуск 5 реплик сервиса генерации (`warehouseapp-api-0`…`warehouseapp-api-4`) на портах 7250–7254.
+2. **API-шлюз на Ocelot** — проект `Api.Gateway` принимает клиентские запросы и маршрутизирует их к репликам через конфигурацию `ocelot.json`.
+3. **Кастомный балансировщик `WeightedRandom`** — реализован алгоритм взвешенного случайного выбора реплики.
+
+## Алгоритм Weighted Random
+
+Каждой реплике присваивается целочисленный вес. При поступлении запроса вероятность выбора реплики пропорциональна её весу:
+
+$$P_i = \frac{w_i}{\sum_{j} w_j}$$
+
+## Конфигурация весов
+
+Веса задаются в `Api.Gateway/appsettings.json` в секции `LoadBalancer:Weights` — массив целых чисел, где индекс соответствует номеру реплики:
+
+```json
+{
+  "LoadBalancer": {
+    "Weights": [ 35, 25, 20, 12, 8 ]
+  }
+}
+```
+
+---
+
+# Лабораторная работа №3 — «Брокер сообщений и объектное хранилище»
+
+Вариант: SNS + Minio. После генерации товар публикуется в SNS-топик в LocalStack, файловый сервис принимает уведомление по HTTP и кладёт JSON в бакет Minio.
+
+## Что было сделано
+
+1. CloudFormation-шаблон `WarehouseApp.AppHost/CloudFormation/warehouse-template-sns.yaml` с одним SNS-топиком `warehouse-topic`. В AppHost применяется через `AddAWSCloudFormationTemplate`.
+2. В `AppHost.cs` подняты контейнеры `warehouse-localstack` (порт 4566) и `warehouse-minio`. Реплики API и файловый сервис получают AWS-конфигурацию через `WithReference(awsResources)`.
+3. В `WarehouseApp.Api` после промаха кэша `WarehouseItemService` вызывает `SnsPublisherService.PublishAsync` — сериализует `WarehouseItem` и публикует в топик. ARN читается из `AWS:Resources:SNSTopicArn` (заполняется outputs CloudFormation).
+4. `WarehouseApp.FileService`:
+   - на старте создаёт бакет (`S3MinioService.EnsureBucketExists`) и подписывает свой HTTP-эндпоинт на топик (`SnsSubscriptionService.SubscribeEndpoint`);
+   - `POST /api/sns` — вебхук, подтверждает `SubscriptionConfirmation` и сохраняет `Notification` в Minio под ключом `warehouse_{id}.json`;
+   - `GET /api/s3` и `GET /api/s3/{key}` — список ключей и чтение одного объекта.
+5. Интеграционные тесты:
+   - `GatewayCall_ProducesFileInS3WithSameId` — дёргает `GET /warehouse-item?id={id}` у шлюза и поллит `GET /api/s3/warehouse_{id}.json` у файлового сервиса, сравнивая содержимое;
+   - `MultipleGatewayCalls_ProduceDistinctFilesInS3` — делает три запроса с разными id и проверяет, что все три ключа появились в `GET /api/s3`.
